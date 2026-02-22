@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Gestor de Faturas do Cartão</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<main class="card">
+  <h1>Gestor de Faturas</h1>
+  <p class="sub">
+    Fechamento: <b id="txtFechamento">17</b> • Vencimento: <b id="txtVencimento">24</b>
+  </p>
+
+  <section class="form">
+    <label>
+      <span>📅 Data da compra</span>
+      <input type="date" id="dataCompra" />
+    </label>
+
+    <label>
+      <span>📝 Descrição</span>
+      <input type="text" id="descCompra" placeholder="ex: Mercado, Uber, Netflix" maxlength="60"/>
+    </label>
+
+    <label>
+      <span>🏷️ Categoria</span>
+      <select id="catCompra">
+        <option value="Alimentação">Alimentação</option>
+        <option value="Transporte">Transporte</option>
+        <option value="Lazer">Lazer</option>
+        <option value="Assinaturas">Assinaturas</option>
+        <option value="Saúde">Saúde</option>
+        <option value="Educação">Educação</option>
+        <option value="Compras">Compras</option>
+        <option value="Outros">Outros</option>
+      </select>
+    </label>
+
+    <div class="grid2">
+      <label>
+        <span>💰 Valor total (R$)</span>
+        <input type="number" id="valorTotal" placeholder="ex: 300" step="0.01" min="0"/>
+      </label>
+
+      <label>
+        <span>🧾 Parcelas</span>
+        <select id="parcelas">
+          <option value="1">1x (à vista)</option>
+          <option value="2">2x</option>
+          <option value="3">3x</option>
+          <option value="4">4x</option>
+          <option value="5">5x</option>
+          <option value="6">6x</option>
+          <option value="7">7x</option>
+          <option value="8">8x</option>
+          <option value="9">9x</option>
+          <option value="10">10x</option>
+          <option value="11">11x</option>
+          <option value="12">12x</option>
+        </select>
+      </label>
+    </div>
+
+    <button id="btnAdd">Adicionar compra</button>
+
+    <div class="actions">
+      <button class="ghost" id="btnClear" title="Apagar tudo">Limpar tudo</button>
+    </div>
+  </section>
+
+  <hr>
+
+  <section class="controls">
+    <label>
+      <span>📌 Filtrar por fatura</span>
+      <select id="filtroFatura">
+        <option value="todas">Todas</option>
+      </select>
+    </label>
+  </section>
+
+  <section>
+    <h2>Resumo por fatura</h2>
+    <div id="resumoFaturas" class="list"></div>
+  </section>
+
+  <section>
+    <h2>Compras (itens lançados)</h2>
+    <div id="listaCompras" class="list"></div>
+  </section>
+
+  <p class="foot">Salvo no seu navegador (localStorage).</p>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
