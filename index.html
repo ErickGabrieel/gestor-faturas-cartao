@@ -12,75 +12,86 @@
   <h1>Gestor de Faturas</h1>
   <p class="sub">Configure seu cartão:</p>
 
-  <div class="grid2">
-    <label>
-      <span>🔒 Dia de fechamento</span>
-      <input type="number" id="cfgFechamento" min="1" max="31" placeholder="ex: 17">
-    </label>
-
-    <label>
-      <span>💳 Dia de vencimento</span>
-      <input type="number" id="cfgVencimento" min="1" max="31" placeholder="ex: 24">
-    </label>
-  </div>
-
-  <section class="form">
-    <label>
-      <span>📅 Data da compra</span>
-      <input type="date" id="dataCompra" />
-    </label>
-
-    <label>
-      <span>📝 Descrição</span>
-      <input type="text" id="descCompra" placeholder="ex: Mercado, Uber, Netflix" maxlength="60"/>
-    </label>
-
-    <label>
-      <span>🏷️ Categoria</span>
-      <select id="catCompra">
-        <option value="Alimentação">Alimentação</option>
-        <option value="Transporte">Transporte</option>
-        <option value="Lazer">Lazer</option>
-        <option value="Assinaturas">Assinaturas</option>
-        <option value="Saúde">Saúde</option>
-        <option value="Educação">Educação</option>
-        <option value="Compras">Compras</option>
-        <option value="Outros">Outros</option>
-      </select>
-    </label>
-
+  <!-- FORM (evita recarregar a página) -->
+  <form id="formCompra" autocomplete="off">
     <div class="grid2">
       <label>
-        <span>💰 Valor total (R$)</span>
-        <input type="number" id="valorTotal" placeholder="ex: 300" step="0.01" min="0"/>
+        <span>🔒 Dia de fechamento</span>
+        <input type="number" id="cfgFechamento" min="1" max="31" placeholder="ex: 17">
       </label>
 
       <label>
-        <span>🧾 Parcelas</span>
-        <select id="parcelas">
-          <option value="1">1x (à vista)</option>
-          <option value="2">2x</option>
-          <option value="3">3x</option>
-          <option value="4">4x</option>
-          <option value="5">5x</option>
-          <option value="6">6x</option>
-          <option value="7">7x</option>
-          <option value="8">8x</option>
-          <option value="9">9x</option>
-          <option value="10">10x</option>
-          <option value="11">11x</option>
-          <option value="12">12x</option>
-        </select>
+        <span>💳 Dia de vencimento</span>
+        <input type="number" id="cfgVencimento" min="1" max="31" placeholder="ex: 24">
       </label>
     </div>
 
-    <button id="btnAdd">Adicionar compra</button>
+    <section class="form">
+      <label>
+        <span>📅 Data da compra</span>
+        <input type="date" id="dataCompra" />
+      </label>
 
-    <div class="actions">
-      <button class="ghost" id="btnRecalc" title="Recalcular vencimentos">Recalcular tudo</button>
-      <button class="ghost" id="btnClear" title="Apagar tudo">Limpar tudo</button>
-    </div>
-  </section>
+      <label>
+        <span>📝 Descrição</span>
+        <input type="text" id="descCompra" placeholder="ex: Mercado, Uber, Netflix" maxlength="60"/>
+      </label>
+
+      <label>
+        <span>🏷️ Categoria</span>
+        <select id="catCompra">
+          <option value="Alimentação">Alimentação</option>
+          <option value="Transporte">Transporte</option>
+          <option value="Lazer">Lazer</option>
+          <option value="Assinaturas">Assinaturas</option>
+          <option value="Saúde">Saúde</option>
+          <option value="Educação">Educação</option>
+          <option value="Compras">Compras</option>
+          <option value="Outros">Outros</option>
+        </select>
+      </label>
+
+      <div class="grid2">
+        <label>
+          <span>💰 Valor total (R$)</span>
+          <input type="number" id="valorTotal" placeholder="ex: 300" step="0.01" min="0"/>
+        </label>
+
+        <label>
+          <span>🧾 Parcelas</span>
+          <select id="parcelas">
+            <option value="1">1x (à vista)</option>
+            <option value="2">2x</option>
+            <option value="3">3x</option>
+            <option value="4">4x</option>
+            <option value="5">5x</option>
+            <option value="6">6x</option>
+            <option value="7">7x</option>
+            <option value="8">8x</option>
+            <option value="9">9x</option>
+            <option value="10">10x</option>
+            <option value="11">11x</option>
+            <option value="12">12x</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- ✅ Correção: type="button" -->
+      <button id="btnAdd" type="button">Adicionar compra</button>
+
+      <div class="actions">
+        <!-- ✅ Correção: type="button" -->
+        <button class="ghost" id="btnRecalc" type="button" title="Recalcular vencimentos">
+          Recalcular tudo
+        </button>
+
+        <!-- ✅ Correção: type="button" -->
+        <button class="ghost" id="btnClear" type="button" title="Apagar tudo">
+          Limpar tudo
+        </button>
+      </div>
+    </section>
+  </form>
 
   <hr>
 
@@ -105,6 +116,11 @@
 
   <p class="foot">Salvo no seu navegador (localStorage).</p>
 </main>
+
+<script>
+  // ✅ Extra de segurança: se o usuário apertar Enter em algum campo, não recarrega a página
+  document.getElementById("formCompra").addEventListener("submit", (e) => e.preventDefault());
+</script>
 
 <script src="app.js"></script>
 </body>
