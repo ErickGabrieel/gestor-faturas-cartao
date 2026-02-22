@@ -10,9 +10,19 @@
 
 <main class="card">
   <h1>Gestor de Faturas</h1>
-  <p class="sub">
-    Fechamento: <b id="txtFechamento">17</b> • Vencimento: <b id="txtVencimento">24</b>
-  </p>
+  <p class="sub">Configure seu cartão:</p>
+
+  <div class="grid2">
+    <label>
+      <span>🔒 Dia de fechamento</span>
+      <input type="number" id="cfgFechamento" min="1" max="31" placeholder="ex: 17">
+    </label>
+
+    <label>
+      <span>💳 Dia de vencimento</span>
+      <input type="number" id="cfgVencimento" min="1" max="31" placeholder="ex: 24">
+    </label>
+  </div>
 
   <section class="form">
     <label>
@@ -66,10 +76,11 @@
 
     <button id="btnAdd">Adicionar compra</button>
 
-   <div class="actions">
-  <button class="ghost" id="btnRecalc" title="Recalcular vencimentos">Recalcular tudo</button>
-  <button class="ghost" id="btnClear" title="Apagar tudo">Limpar tudo</button>
-</div>
+    <div class="actions">
+      <button class="ghost" id="btnRecalc" title="Recalcular vencimentos">Recalcular tudo</button>
+      <button class="ghost" id="btnClear" title="Apagar tudo">Limpar tudo</button>
+    </div>
+  </section>
 
   <hr>
 
