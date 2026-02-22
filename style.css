@@ -140,3 +140,4 @@ h2{ font-size: 16px; margin: 12px 0; }
 @media (max-width: 560px){
   .grid2{ grid-template-columns: 1fr; }
 }
+.grid2 { margin-bottom: 10px; }
