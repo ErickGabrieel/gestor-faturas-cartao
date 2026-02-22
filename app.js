@@ -1,5 +1,7 @@
-
 // ===== Elementos =====
+const elCfgFech = document.getElementById("cfgFechamento");
+const elCfgVenc = document.getElementById("cfgVencimento");
+
 const elData = document.getElementById("dataCompra");
 const elDesc = document.getElementById("descCompra");
 const elCat  = document.getElementById("catCompra");
@@ -12,11 +14,9 @@ const elRecalc = document.getElementById("btnRecalc");
 
 const elLista = document.getElementById("listaCompras");
 const elResumo = document.getElementById("resumoFaturas");
-
 const elFiltro = document.getElementById("filtroFatura");
-const elCfgFech = document.getElementById("cfgFechamento");
-const elCfgVenc = document.getElementById("cfgVencimento");
 
+// ===== Config do cartão (salva no navegador) =====
 const CFG_KEY = "gestor_faturas_config_v2";
 
 function loadConfig(){
@@ -47,15 +47,17 @@ function validarCfg(){
   return true;
 }
 
-// Inicializa inputs
+// Inicializa os inputs de config
 const cfgInicial = getConfig();
 elCfgFech.value = cfgInicial.fechamento;
 elCfgVenc.value = cfgInicial.vencimento;
+
 // ===== Utils =====
 function brl(n){
   return n.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
 }
 
+// Parse seguro (sem bug de fuso do input date)
 function parseDateInput(yyyy_mm_dd){
   const [y, m, d] = yyyy_mm_dd.split("-").map(Number);
   return new Date(y, m - 1, d);
@@ -70,7 +72,7 @@ function vencimentoBase(compraDate){
   const { fechamento, vencimento } = getConfig();
 
   let y = compraDate.getFullYear();
-  let m = compraDate.getMonth();
+  let m = compraDate.getMonth(); // 0-11
   const d = compraDate.getDate();
 
   if (d >= fechamento){
@@ -79,37 +81,16 @@ function vencimentoBase(compraDate){
   }
   return new Date(y, m, vencimento);
 }
-}
 
 function addMonths(dateObj, monthsToAdd){
   let y = dateObj.getFullYear();
   let m = dateObj.getMonth() + monthsToAdd;
+
   y += Math.floor(m / 12);
   m = m % 12;
   if (m < 0) { m += 12; y -= 1; }
+
   return new Date(y, m, dateObj.getDate());
-}
-function recalcularTodasCompras() {
-
-  const compras = loadCompras();
-  if (compras.length === 0) return;
-
-  const novas = [];
-
-  compras.forEach((item) => {
-
-    const compraDate = parseDateInput(item.data);
-    const baseVenc = vencimentoBase(compraDate);
-
-    const venc = addMonths(baseVenc, (item.parcelaAtual || 1) - 1);
-
-    novas.push({
-      ...item,
-      vencimento: venc.toISOString()
-    });
-  });
-
-  saveCompras(novas);
 }
 
 // Divide valor em parcelas com centavos corretos (somatório fecha certinho)
@@ -117,6 +98,7 @@ function splitIntoInstallments(total, n){
   const totalCents = Math.round(total * 100);
   const base = Math.floor(totalCents / n);
   const resto = totalCents % n;
+
   const cents = Array.from({length:n}, (_, i) => base + (i < resto ? 1 : 0));
   return cents.map(c => c / 100);
 }
@@ -133,18 +115,54 @@ function nomeFatura(key){
   const venc = new Date(y, m - 1, vencimento);
   return `Venc. ${formatarDataBR(venc)}`;
 }
-}
 
 // ===== Persistência =====
+const DATA_KEY = "gestor_faturas_v2";
+
 function loadCompras(){
   try{
-    return JSON.parse(localStorage.getItem("gestor_faturas_v2") || "[]");
+    return JSON.parse(localStorage.getItem(DATA_KEY) || "[]");
   }catch{
     return [];
   }
 }
+
 function saveCompras(compras){
-  localStorage.setItem("gestor_faturas_v2", JSON.stringify(compras));
+  localStorage.setItem(DATA_KEY, JSON.stringify(compras));
+}
+
+// ===== Recalcular vencimentos (com config atual) =====
+function recalcularTodasCompras() {
+  const compras = loadCompras();
+  if (compras.length === 0) return;
+
+  // Agrupa por compraId para recalcular base uma vez por compra
+  const porCompra = new Map();
+  compras.forEach(item => {
+    if (!porCompra.has(item.compraId)) porCompra.set(item.compraId, []);
+    porCompra.get(item.compraId).push(item);
+  });
+
+  const novas = [];
+
+  porCompra.forEach((itens) => {
+    const data = itens[0].data;                 // YYYY-MM-DD
+    const compraDate = parseDateInput(data);
+    const baseVenc = vencimentoBase(compraDate);
+
+    // garante ordem das parcelas
+    itens.sort((a,b) => (a.parcelaAtual || 1) - (b.parcelaAtual || 1));
+
+    itens.forEach((item, idx) => {
+      const venc = addMonths(baseVenc, idx);    // idx 0 = parcela 1
+      novas.push({
+        ...item,
+        vencimento: venc.toISOString()
+      });
+    });
+  });
+
+  saveCompras(novas);
 }
 
 // ===== Render =====
@@ -159,7 +177,7 @@ function preencherFiltroFaturas(faturasKeys){
     elFiltro.appendChild(opt);
   });
 
-  // tenta manter seleção anterior
+  // mantém seleção anterior se ainda existir
   if ([...elFiltro.options].some(o => o.value === atual)){
     elFiltro.value = atual;
   } else {
@@ -170,7 +188,7 @@ function preencherFiltroFaturas(faturasKeys){
 function render(){
   const compras = loadCompras();
 
-  // Mapa de totais por fatura
+  // totais por fatura
   const mapaTotais = new Map();
   compras.forEach(c => {
     const venc = new Date(c.vencimento);
@@ -181,14 +199,13 @@ function render(){
   const faturasKeys = Array.from(mapaTotais.keys()).sort((a,b)=> a.localeCompare(b));
   preencherFiltroFaturas(faturasKeys);
 
-  // Render resumo
+  // resumo
   elResumo.innerHTML = "";
   if (faturasKeys.length === 0){
-    elResumo.innerHTML = `<div class="item"><div><b>Sem faturas</b><small>Adicione compras para gerar o resumo.</small></div><span class="badge">—</span></div>`;
+    elResumo.innerHTML =
+      `<div class="item"><div><b>Sem faturas</b><small>Adicione compras para gerar o resumo.</small></div><span class="badge">—</span></div>`;
   } else {
     faturasKeys.forEach(key => {
-      const [y, m] = key.split("-").map(Number);
-      const venc = new Date(y, m - 1, VENCIMENTO);
       elResumo.innerHTML += `
         <div class="item">
           <div>
@@ -201,13 +218,13 @@ function render(){
     });
   }
 
-  // Filtragem
+  // filtro
   const filtro = elFiltro.value || "todas";
   const comprasFiltradas = (filtro === "todas")
     ? compras
     : compras.filter(c => chaveFatura(new Date(c.vencimento)) === filtro);
 
-  // Ordenar por vencimento e parcela
+  // ordenação
   comprasFiltradas.sort((a,b) => {
     const av = new Date(a.vencimento).getTime();
     const bv = new Date(b.vencimento).getTime();
@@ -215,10 +232,11 @@ function render(){
     return (a.parcelaAtual || 1) - (b.parcelaAtual || 1);
   });
 
-  // Render lista (itens)
+  // lista
   elLista.innerHTML = "";
   if (comprasFiltradas.length === 0){
-    elLista.innerHTML = `<div class="item"><div><b>Nenhum item nesse filtro</b><small>Troque o filtro ou adicione compras.</small></div><span class="badge">—</span></div>`;
+    elLista.innerHTML =
+      `<div class="item"><div><b>Nenhum item nesse filtro</b><small>Troque o filtro ou adicione compras.</small></div><span class="badge">—</span></div>`;
     return;
   }
 
@@ -260,28 +278,21 @@ window.removerCompra = function(compraId){
 
 // ===== Ações =====
 elAdd.addEventListener("click", () => {
+  if (!validarCfg()){
+    alert("Configure fechamento e vencimento válidos (1 a 31).");
+    return;
+  }
+
   const data = elData.value;
   const descricao = (elDesc.value || "").trim();
   const categoria = elCat.value;
   const valorTotal = Number(elValor.value);
   const parcelas = parseInt(elParcelas.value, 10);
 
-  if (!data){
-    alert("Preencha a data da compra.");
-    return;
-  }
-  if (!descricao){
-    alert("Preencha a descrição.");
-    return;
-  }
-  if (!Number.isFinite(valorTotal) || valorTotal <= 0){
-    alert("Preencha um valor total válido.");
-    return;
-  }
-  if (!Number.isFinite(parcelas) || parcelas < 1){
-    alert("Selecione o número de parcelas.");
-    return;
-  }
+  if (!data){ alert("Preencha a data da compra."); return; }
+  if (!descricao){ alert("Preencha a descrição."); return; }
+  if (!Number.isFinite(valorTotal) || valorTotal <= 0){ alert("Preencha um valor total válido."); return; }
+  if (!Number.isFinite(parcelas) || parcelas < 1){ alert("Selecione o número de parcelas."); return; }
 
   const compraDate = parseDateInput(data);
   const baseVenc = vencimentoBase(compraDate);
@@ -319,30 +330,13 @@ elAdd.addEventListener("click", () => {
 
 elClear.addEventListener("click", () => {
   if (confirm("Quer apagar TODAS as compras salvas?")){
-    localStorage.removeItem("gestor_faturas_v2");
+    localStorage.removeItem(DATA_KEY);
     render();
   }
 });
 
 elFiltro.addEventListener("change", render);
-elRecalc.addEventListener("click", () => {
-  if (!validarCfg()){
-    alert("Configure fechamento e vencimento válidos antes de recalcular.");
-    return;
-  }
-  if (!confirm("Recalcular vencimentos?")) return;
-  recalcularTodasCompras();
-  render();
-});
 
-render();
-elRecalc.addEventListener("click", () => {
-
-  if (!confirm("Recalcular vencimentos?")) return;
-
-  recalcularTodasCompras();
-  render();
-});
 elCfgFech.addEventListener("change", () => {
   if (!validarCfg()) alert("Fechamento inválido (1 a 31).");
   render();
@@ -352,3 +346,15 @@ elCfgVenc.addEventListener("change", () => {
   if (!validarCfg()) alert("Vencimento inválido (1 a 31).");
   render();
 });
+
+elRecalc.addEventListener("click", () => {
+  if (!validarCfg()){
+    alert("Configure fechamento e vencimento válidos antes de recalcular.");
+    return;
+  }
+  if (!confirm("Recalcular vencimentos de TODAS as compras com a configuração atual?")) return;
+  recalcularTodasCompras();
+  render();
+});
+
+render();
