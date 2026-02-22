@@ -1,6 +1,3 @@
-// ===== Config do cartão =====
-const FECHAMENTO = 17;
-const VENCIMENTO = 24;
 
 // ===== Elementos =====
 const elData = document.getElementById("dataCompra");
@@ -11,15 +8,49 @@ const elParcelas = document.getElementById("parcelas");
 
 const elAdd = document.getElementById("btnAdd");
 const elClear = document.getElementById("btnClear");
+const elRecalc = document.getElementById("btnRecalc");
 
 const elLista = document.getElementById("listaCompras");
 const elResumo = document.getElementById("resumoFaturas");
 
 const elFiltro = document.getElementById("filtroFatura");
+const elCfgFech = document.getElementById("cfgFechamento");
+const elCfgVenc = document.getElementById("cfgVencimento");
 
-document.getElementById("txtFechamento").innerText = FECHAMENTO;
-document.getElementById("txtVencimento").innerText = VENCIMENTO;
+const CFG_KEY = "gestor_faturas_config_v2";
 
+function loadConfig(){
+  try { return JSON.parse(localStorage.getItem(CFG_KEY) || "{}"); }
+  catch { return {}; }
+}
+
+function saveConfig(cfg){
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+}
+
+function getConfig(){
+  const cfg = loadConfig();
+  return {
+    fechamento: Number(cfg.fechamento) || 17,
+    vencimento: Number(cfg.vencimento) || 24
+  };
+}
+
+function validarCfg(){
+  const fechamento = parseInt(elCfgFech.value, 10);
+  const vencimento = parseInt(elCfgVenc.value, 10);
+
+  if (!Number.isFinite(fechamento) || fechamento < 1 || fechamento > 31) return false;
+  if (!Number.isFinite(vencimento) || vencimento < 1 || vencimento > 31) return false;
+
+  saveConfig({ fechamento, vencimento });
+  return true;
+}
+
+// Inicializa inputs
+const cfgInicial = getConfig();
+elCfgFech.value = cfgInicial.fechamento;
+elCfgVenc.value = cfgInicial.vencimento;
 // ===== Utils =====
 function brl(n){
   return n.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
@@ -36,15 +67,18 @@ function formatarDataBR(dateObj){
 
 // Regra do ciclo: dia < fechamento => vence mesmo mês; dia >= fechamento => vence mês seguinte
 function vencimentoBase(compraDate){
+  const { fechamento, vencimento } = getConfig();
+
   let y = compraDate.getFullYear();
-  let m = compraDate.getMonth(); // 0-11
+  let m = compraDate.getMonth();
   const d = compraDate.getDate();
 
-  if (d >= FECHAMENTO){
+  if (d >= fechamento){
     m += 1;
     if (m > 11){ m = 0; y += 1; }
   }
-  return new Date(y, m, VENCIMENTO);
+  return new Date(y, m, vencimento);
+}
 }
 
 function addMonths(dateObj, monthsToAdd){
@@ -54,6 +88,28 @@ function addMonths(dateObj, monthsToAdd){
   m = m % 12;
   if (m < 0) { m += 12; y -= 1; }
   return new Date(y, m, dateObj.getDate());
+}
+function recalcularTodasCompras() {
+
+  const compras = loadCompras();
+  if (compras.length === 0) return;
+
+  const novas = [];
+
+  compras.forEach((item) => {
+
+    const compraDate = parseDateInput(item.data);
+    const baseVenc = vencimentoBase(compraDate);
+
+    const venc = addMonths(baseVenc, (item.parcelaAtual || 1) - 1);
+
+    novas.push({
+      ...item,
+      vencimento: venc.toISOString()
+    });
+  });
+
+  saveCompras(novas);
 }
 
 // Divide valor em parcelas com centavos corretos (somatório fecha certinho)
@@ -72,9 +128,11 @@ function chaveFatura(vencDate){
 }
 
 function nomeFatura(key){
+  const { vencimento } = getConfig();
   const [y, m] = key.split("-").map(Number);
-  const venc = new Date(y, m - 1, VENCIMENTO);
+  const venc = new Date(y, m - 1, vencimento);
   return `Venc. ${formatarDataBR(venc)}`;
+}
 }
 
 // ===== Persistência =====
@@ -267,5 +325,30 @@ elClear.addEventListener("click", () => {
 });
 
 elFiltro.addEventListener("change", render);
+elRecalc.addEventListener("click", () => {
+  if (!validarCfg()){
+    alert("Configure fechamento e vencimento válidos antes de recalcular.");
+    return;
+  }
+  if (!confirm("Recalcular vencimentos?")) return;
+  recalcularTodasCompras();
+  render();
+});
 
 render();
+elRecalc.addEventListener("click", () => {
+
+  if (!confirm("Recalcular vencimentos?")) return;
+
+  recalcularTodasCompras();
+  render();
+});
+elCfgFech.addEventListener("change", () => {
+  if (!validarCfg()) alert("Fechamento inválido (1 a 31).");
+  render();
+});
+
+elCfgVenc.addEventListener("change", () => {
+  if (!validarCfg()) alert("Vencimento inválido (1 a 31).");
+  render();
+});
